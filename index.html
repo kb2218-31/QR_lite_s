@@ -118,42 +118,10 @@ function validURL(str){
     }
 }
 
-function generateQR(){
-
-    const url=document.getElementById("url").value.trim();
-    const area=document.getElementById("qrcode");
-    const error=document.getElementById("error");
-
-    area.innerHTML="";
-    error.textContent="";
-
-    if(!validURL(url)){
-        error.textContent="正しいURLを入力してください。";
-        return;
-    }
-
-    currentQR=new QRCode(area,{
-        text:url,
-        width:220,
-        height:220,
-        colorDark:"#000000",
-        colorLight:"#ffffff",
-        correctLevel:QRCode.CorrectLevel.H
-    });
-
-    document.getElementById("qrText").textContent = url;
-
-    area.innerHTML="";
-    error.textContent="";
-    document.getElementById("qrText").textContent="";
-}
-
-async function downloadQR(){
 function wrapText(ctx, text, x, y, maxWidth, lineHeight){
 
     const chars = text.split("");
     let line = "";
-    let lines = 0;
 
     for(let i=0;i<chars.length;i++){
 
@@ -163,18 +131,46 @@ function wrapText(ctx, text, x, y, maxWidth, lineHeight){
             ctx.fillText(line,x,y);
             line = chars[i];
             y += lineHeight;
-            lines++;
         }else{
             line = testLine;
         }
     }
 
     ctx.fillText(line,x,y);
-
-    return lines + 1;
 }
-    const img=document.querySelector("#qrcode img");
-    const canvas=document.querySelector("#qrcode canvas");
+
+function generateQR(){
+
+    const url = document.getElementById("url").value.trim();
+    const area = document.getElementById("qrcode");
+    const error = document.getElementById("error");
+    const qrText = document.getElementById("qrText");
+
+    area.innerHTML = "";
+    error.textContent = "";
+    qrText.textContent = "";
+
+    if(!validURL(url)){
+        error.textContent = "正しいURLを入力してください。";
+        return;
+    }
+
+    currentQR = new QRCode(area,{
+        text:url,
+        width:220,
+        height:220,
+        colorDark:"#000000",
+        colorLight:"#ffffff",
+        correctLevel:QRCode.CorrectLevel.H
+    });
+
+    qrText.textContent = url;
+}
+
+async function downloadQR(){
+
+    const img = document.querySelector("#qrcode img");
+    const canvas = document.querySelector("#qrcode canvas");
 
     if(!img && !canvas){
         alert("先にQRコードを生成してください。");
@@ -185,100 +181,97 @@ function wrapText(ctx, text, x, y, maxWidth, lineHeight){
 
     const image = new Image();
 
-    image.onload = async function(){
+    image.onload = function(){
 
-        // 約3mm（300dpi換算 約35px）
         const margin = 35;
-const lineHeight = 20;
+        const lineHeight = 20;
+        const url = document.getElementById("url").value.trim();
 
-const url = document.getElementById("url").value.trim();
+        const tempCanvas = document.createElement("canvas");
+        const tempCtx = tempCanvas.getContext("2d");
+        tempCtx.font = "16px Yu Gothic";
 
-const tempCanvas = document.createElement("canvas");
-const tempCtx = tempCanvas.getContext("2d");
-tempCtx.font = "16px Yu Gothic";
+        let line = "";
+        let lineCount = 1;
 
-const chars = url.split("");
-let line = "";
-let lineCount = 1;
+        for(const ch of url){
 
-for(let i=0;i<chars.length;i++){
+            const testLine = line + ch;
 
-    const testLine = line + chars[i];
+            if(tempCtx.measureText(testLine).width > image.width + margin*2 - 20){
+                lineCount++;
+                line = ch;
+            }else{
+                line = testLine;
+            }
 
-    if(tempCtx.measureText(testLine).width > image.width + margin*2 - 20){
-        lineCount++;
-        line = chars[i];
-    }else{
-        line = testLine;
-    }
+        }
 
-}
+        const textHeight = lineCount * lineHeight + 20;
 
-const textHeight = lineCount * lineHeight + 20;
+        const outCanvas = document.createElement("canvas");
+        outCanvas.width = image.width + margin*2;
+        outCanvas.height = image.height + margin*2 + textHeight;
 
-const outCanvas = document.createElement("canvas");
-outCanvas.width = image.width + margin*2;
-outCanvas.height = image.height + margin*2 + textHeight;
+        const ctx = outCanvas.getContext("2d");
 
-const ctx = outCanvas.getContext("2d");
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0,0,outCanvas.width,outCanvas.height);
 
-ctx.fillStyle="#ffffff";
-ctx.fillRect(0,0,outCanvas.width,outCanvas.height);
+        ctx.drawImage(image,margin,margin);
 
-ctx.drawImage(image,margin,margin);
+        ctx.fillStyle = "#000000";
+        ctx.font = "16px Yu Gothic";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top";
 
-ctx.fillStyle="#000000";
-ctx.font="16px Yu Gothic";
-ctx.textAlign="center";
-ctx.textBaseline="top";
+        wrapText(
+            ctx,
+            url,
+            outCanvas.width/2,
+            image.height + margin*2 + 8,
+            outCanvas.width - 20,
+            lineHeight
+        );
 
-wrapText(
-    ctx,
-    url,
-    outCanvas.width/2,
-    image.height + margin*2 + 8,
-    outCanvas.width-20,
-    lineHeight
-);
-        const type=document.getElementById("downloadType").value;
+        const type = document.getElementById("downloadType").value;
 
         if(type==="png"){
 
-            const a=document.createElement("a");
-            a.href=outCanvas.toDataURL("image/png");
-            a.download="QRCode.png";
+            const a = document.createElement("a");
+            a.href = outCanvas.toDataURL("image/png");
+            a.download = "QRCode.png";
             a.click();
 
         }else{
 
             const { jsPDF } = window.jspdf;
 
-            const pdf=new jsPDF({
+            const pdf = new jsPDF({
                 orientation:"portrait",
                 unit:"mm",
                 format:"a4"
             });
 
-            // 余白込みで約70mm角
-            const width = 70;
-const height = width * outCanvas.height / outCanvas.width;
+            const pdfWidth = 70;
+            const pdfHeight = pdfWidth * outCanvas.height / outCanvas.width;
 
-    pdf.addImage(
-        outCanvas.toDataURL("image/png"),
-        "PNG",
-        70,
-        40,
-        width,
-        height
-    );
+            pdf.addImage(
+                outCanvas.toDataURL("image/png"),
+                "PNG",
+                70,
+                40,
+                pdfWidth,
+                pdfHeight
+            );
 
             pdf.save("QRCode.pdf");
 
         }
 
-    }
+    };
 
-    image.src=src;
+    image.src = src;
 
 }
 
