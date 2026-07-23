@@ -45,6 +45,14 @@ button{
     cursor:pointer;
 }
 
+select{
+    width:100%;
+    padding:12px;
+    font-size:16px;
+    margin-bottom:10px;
+    box-sizing:border-box;
+}
+
 #qrcode{
     margin-top:20px;
     display:flex;
@@ -62,7 +70,7 @@ button{
 
 <div class="container">
 
-<h1>QRコード生成</h1>
+<h1>QRコード生成簡易サイト</h1>
 
 <input
 id="url"
@@ -70,6 +78,11 @@ type="text"
 placeholder="https://example.com">
 
 <button onclick="generateQR()">生成</button>
+
+<select id="downloadType">
+    <option value="png">PNG形式で保存</option>
+    <option value="pdf">PDF形式で保存</option>
+</select>
 
 <button onclick="downloadQR()">ダウンロード</button>
 
@@ -80,6 +93,8 @@ placeholder="https://example.com">
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <script>
 
@@ -119,28 +134,72 @@ function generateQR(){
 
 }
 
-function downloadQR(){
+async function downloadQR(){
 
     const img=document.querySelector("#qrcode img");
     const canvas=document.querySelector("#qrcode canvas");
 
-    if(img){
-        const a=document.createElement("a");
-        a.href=img.src;
-        a.download="QRCode.png";
-        a.click();
+    if(!img && !canvas){
+        alert("先にQRコードを生成してください。");
         return;
     }
 
-    if(canvas){
-        const a=document.createElement("a");
-        a.href=canvas.toDataURL("image/png");
-        a.download="QRCode.png";
-        a.click();
-        return;
+    const src = img ? img.src : canvas.toDataURL("image/png");
+
+    const image = new Image();
+
+    image.onload = async function(){
+
+        // 約3mm（300dpi換算 約35px）
+        const margin = 35;
+
+        const outCanvas = document.createElement("canvas");
+        outCanvas.width = image.width + margin * 2;
+        outCanvas.height = image.height + margin * 2;
+
+        const ctx = outCanvas.getContext("2d");
+
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0,0,outCanvas.width,outCanvas.height);
+
+        ctx.drawImage(image,margin,margin);
+
+        const type=document.getElementById("downloadType").value;
+
+        if(type==="png"){
+
+            const a=document.createElement("a");
+            a.href=outCanvas.toDataURL("image/png");
+            a.download="QRCode.png";
+            a.click();
+
+        }else{
+
+            const { jsPDF } = window.jspdf;
+
+            const pdf=new jsPDF({
+                orientation:"portrait",
+                unit:"mm",
+                format:"a4"
+            });
+
+            // 余白込みで約70mm角
+            pdf.addImage(
+                outCanvas.toDataURL("image/png"),
+                "PNG",
+                70,
+                70,
+                70,
+                70
+            );
+
+            pdf.save("QRCode.pdf");
+
+        }
+
     }
 
-    alert("先にQRコードを生成してください。");
+    image.src=src;
 
 }
 
