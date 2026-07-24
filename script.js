@@ -140,10 +140,21 @@ image.onload = function(){
 
     if(type === "png"){
 
-        const a = document.createElement("a");
-        a.href = outCanvas.toDataURL("image/png");
-        a.download = saveName + ".png";
-        a.click();
+outCanvas.toBlob(function(blob){
+
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = saveName + ".png";
+
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    URL.revokeObjectURL(url);
+
+}, "image/png");
 
     }else{
 
