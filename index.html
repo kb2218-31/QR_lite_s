@@ -3,6 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<meta name="referrer" content="no-referrer">
+
+<meta http-equiv="Permissions-Policy"
+content="camera=(), microphone=(), geolocation=(), payment=()">
+
+<meta http-equiv="Content-Security-Policy"
+content="
+default-src 'self';
+script-src 'self' https://cdnjs.cloudflare.com;
+style-src 'self' 'unsafe-inline';
+img-src 'self' data: blob:;
+object-src 'none';
+base-uri 'self';
+form-action 'self';
+frame-ancestors 'none';
+">
+
 <title>簡易QRコード生成</title>
 
 <style>
@@ -30,6 +48,10 @@ button{
 }
 
 button{
+    display:block;
+    width:100%;
+    max-width:500px;
+    margin-top:10px;
     cursor:pointer;
 }
 
@@ -71,7 +93,7 @@ label{
 <body>
 
 <div class="container">
-<p><a href="notice.html">利用規約はこちら</a></p>
+<p><a href="notice.html">利用規約・注意事項はこちら</a></p>
 <h1>簡易QR生成サイト</h1>
 
 <input
@@ -293,7 +315,8 @@ image.onload = function(){
 
 </script>
 <footer>
-© 2026/KB2218
+© 2026/KB2218<br>
+「QRコード」は株式会社デンソーウェーブの登録商標です。
 </footer>
 </body>
 </html>
