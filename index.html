@@ -18,7 +18,6 @@ img-src 'self' data: blob:;
 object-src 'none';
 base-uri 'self';
 form-action 'self';
-frame-ancestors 'none';
 ">
 
 <title>簡易QRコード生成</title>
@@ -91,23 +90,25 @@ label{
 </head>
 
 <body>
-
 <div class="container">
 <p><a href="notice.html">利用規約・注意事項はこちら</a></p>
 <h1>簡易QR生成サイト</h1>
-
+<p>
+更新情報：簡易的なセキュリティ対策を実装しました。
+</p>
+<label for="url">URL</label>
 <input
 id="url"
 type="text"
-placeholder="https://example.com">
+placeholder="https://unknown.com">
 
 <label for="fileName">保存ファイル名</label>
 <input
 id="fileName"
 type="text"
-placeholder="例：Example QR">
+placeholder="例：file_name QR">
 
-<button onclick="generateQR()">生成</button>
+<button id="generateBtn">生成</button>
 
 <label for="includeText">URL表示</label>
 <select id="includeText">
@@ -121,7 +122,7 @@ placeholder="例：Example QR">
     <option value="pdf">PDF形式で保存</option>
 </select>
 
-<button onclick="downloadQR()">ダウンロード</button>
+<button id="downloadBtn">ダウンロード</button>
 
 <div id="error"></div>
 
@@ -131,189 +132,11 @@ placeholder="例：Example QR">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script src="script.js"></script>
+
 </div>
-<script>
-    
 
-let currentQR = null;
-
-function validURL(str){
-    try{
-        const url = new URL(str);
-        return url.protocol==="http:" || url.protocol==="https:";
-    }catch{
-        return false;
-    }
-}
-
-function wrapText(ctx, text, x, y, maxWidth, lineHeight){
-
-    const chars = text.split("");
-    let line = "";
-
-    for(let i=0;i<chars.length;i++){
-
-        const testLine = line + chars[i];
-
-        if(ctx.measureText(testLine).width > maxWidth && line !== ""){
-            ctx.fillText(line,x,y);
-            line = chars[i];
-            y += lineHeight;
-        }else{
-            line = testLine;
-        }
-    }
-
-    ctx.fillText(line,x,y);
-}
-
-function generateQR(){
-
-    const url = document.getElementById("url").value.trim();
-    const area = document.getElementById("qrcode");
-    const error = document.getElementById("error");
-    const qrText = document.getElementById("qrText");
-
-    area.innerHTML = "";
-    error.textContent = "";
-    qrText.textContent = "";
-
-    if(!validURL(url)){
-        error.textContent = "正しいURLを入力してください。";
-        return;
-    }
-
-    currentQR = new QRCode(area,{
-        text:url,
-        width:220,
-        height:220,
-        colorDark:"#000000",
-        colorLight:"#ffffff",
-        correctLevel:QRCode.CorrectLevel.H
-    });
-
-    qrText.textContent = url;
-}
-
-async function downloadQR(){
-
-    const img = document.querySelector("#qrcode img");
-    const canvas = document.querySelector("#qrcode canvas");
-
-    if(!img && !canvas){
-        alert("先にQRコードを生成してください。");
-        return;
-    }
-
-    const src = img ? img.src : canvas.toDataURL("image/png");
-
-    const image = new Image();
-
-image.onload = function(){
-
-    // 各種設定
-    const margin = 35;
-    const lineHeight = 20;
-    const url = document.getElementById("url").value.trim();
-    const includeText = document.getElementById("includeText").value === "show";
-    const saveName = document.getElementById("fileName").value.trim() || "QRCode";
-
-    // 文字数計算用キャンバス
-    const tempCanvas = document.createElement("canvas");
-    const tempCtx = tempCanvas.getContext("2d");
-    tempCtx.font = "16px Yu Gothic";
-
-    let line = "";
-    let lineCount = 1;
-
-    for(const ch of url){
-
-        const testLine = line + ch;
-
-        if(tempCtx.measureText(testLine).width > image.width + margin * 2 - 20){
-            lineCount++;
-            line = ch;
-        }else{
-            line = testLine;
-        }
-
-    }
-
-    const textHeight = includeText ? lineCount * lineHeight + 20 : 0;
-
-    // 出力用キャンバス
-    const outCanvas = document.createElement("canvas");
-    outCanvas.width = image.width + margin * 2;
-    outCanvas.height = image.height + margin * 2 + textHeight;
-
-    const ctx = outCanvas.getContext("2d");
-
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, outCanvas.width, outCanvas.height);
-
-    // QRコード描画
-    ctx.drawImage(image, margin, margin);
-
-    // URL表示
-    if(includeText){
-
-        ctx.fillStyle = "#000000";
-        ctx.font = "16px Yu Gothic";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "top";
-
-        wrapText(
-            ctx,
-            url,
-            outCanvas.width / 2,
-            image.height + margin * 2 + 8,
-            outCanvas.width - 20,
-            lineHeight
-        );
-    }
-
-    // 保存形式
-    const type = document.getElementById("downloadType").value;
-
-    if(type === "png"){
-
-        const a = document.createElement("a");
-        a.href = outCanvas.toDataURL("image/png");
-        a.download = saveName + ".png";
-        a.click();
-
-    }else{
-
-        const { jsPDF } = window.jspdf;
-
-        const pdf = new jsPDF({
-            orientation: "portrait",
-            unit: "mm",
-            format: "a4"
-        });
-
-        const pdfWidth = 70;
-        const pdfHeight = pdfWidth * outCanvas.height / outCanvas.width;
-
-        pdf.addImage(
-            outCanvas.toDataURL("image/png"),
-            "PNG",
-            70,
-            40,
-            pdfWidth,
-            pdfHeight
-        );
-
-        pdf.save(saveName + ".pdf");
-    }
-
-};
-
-    image.src = src;
-
-}
-
-</script>
 <footer>
 © 2026/KB2218<br>
 「QRコード」は株式会社デンソーウェーブの登録商標です。
