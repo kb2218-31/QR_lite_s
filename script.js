@@ -184,3 +184,16 @@ document
 document
 .getElementById("downloadBtn")
 .addEventListener("click", downloadQR);
+
+const statusBtn = document.getElementById("statusBtn");
+const statusArea = document.getElementById("statusArea");
+
+statusBtn.addEventListener("click", () => {
+    if (statusArea.style.display === "none") {
+        statusArea.style.display = "block";
+        statusBtn.textContent = "障害情報を閉じる";
+    } else {
+        statusArea.style.display = "none";
+        statusBtn.textContent = "障害情報を見る";
+    }
+});
