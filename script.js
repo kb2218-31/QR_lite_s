@@ -32,7 +32,6 @@ function wrapText(ctx, text, x, y, maxWidth, lineHeight){
 
 function generateQR(){
 
-    const dataType = document.getElementById("dataType").value;
     const url = document.getElementById("url").value.trim();
     const area = document.getElementById("qrcode");
     const error = document.getElementById("error");
@@ -42,10 +41,10 @@ function generateQR(){
     error.textContent = "";
     qrText.textContent = "";
 
-if(dataType === "url" && !validURL(url)){
-    error.textContent = "正しいURLを入力してください。";
-    return;
-}
+    if(!validURL(url)){
+        error.textContent = "正しいURLを入力してください。";
+        return;
+    }
 
     currentQR = new QRCode(area,{
         text:url,
@@ -141,10 +140,21 @@ image.onload = function(){
 
     if(type === "png"){
 
-        const a = document.createElement("a");
-        a.href = outCanvas.toDataURL("image/png");
-        a.download = saveName + ".png";
-        a.click();
+outCanvas.toBlob(function(blob){
+
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = saveName + ".png";
+
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    URL.revokeObjectURL(url);
+
+}, "image/png");
 
     }else{
 
@@ -197,24 +207,4 @@ statusBtn.addEventListener("click", () => {
         statusArea.style.display = "none";
         statusBtn.textContent = "障害情報を見る";
     }
-});
-
-const dataType = document.getElementById("dataType");
-const inputLabel = document.getElementById("inputLabel");
-const urlInput = document.getElementById("url");
-
-dataType.addEventListener("change", () => {
-
-    if(dataType.value === "url"){
-
-        inputLabel.textContent = "URL";
-        urlInput.placeholder = "https://unknown.com";
-
-    }else{
-
-        inputLabel.textContent = "文章";
-        urlInput.placeholder = "QRコードに変換したい文章を入力";
-
-    }
-
 });
